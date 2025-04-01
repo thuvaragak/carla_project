@@ -1,0 +1,5 @@
+  File "/home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/lib/python3.10/site-packages/carla_vehicle/vehicle.py", line 200
+    2.0 * math.tan(fov) * math.pi / 360.0))
+                                          ^
+SyntaxError: unmatched ')'
+

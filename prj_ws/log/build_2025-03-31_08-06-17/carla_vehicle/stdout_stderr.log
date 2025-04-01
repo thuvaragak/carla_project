@@ -1,0 +1,36 @@
+running egg_info
+creating ../../build/carla_vehicle/carla_vehicle.egg-info
+writing ../../build/carla_vehicle/carla_vehicle.egg-info/PKG-INFO
+writing dependency_links to ../../build/carla_vehicle/carla_vehicle.egg-info/dependency_links.txt
+writing entry points to ../../build/carla_vehicle/carla_vehicle.egg-info/entry_points.txt
+writing requirements to ../../build/carla_vehicle/carla_vehicle.egg-info/requires.txt
+writing top-level names to ../../build/carla_vehicle/carla_vehicle.egg-info/top_level.txt
+writing manifest file '../../build/carla_vehicle/carla_vehicle.egg-info/SOURCES.txt'
+reading manifest file '../../build/carla_vehicle/carla_vehicle.egg-info/SOURCES.txt'
+adding license file 'LICENSE'
+writing manifest file '../../build/carla_vehicle/carla_vehicle.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/build
+creating /home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/build/lib
+creating /home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/build/lib/carla_vehicle
+copying carla_vehicle/vehicle.py -> /home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/build/lib/carla_vehicle
+copying carla_vehicle/__init__.py -> /home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/build/lib/carla_vehicle
+running install
+running install_lib
+creating /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/lib/python3.10/site-packages/carla_vehicle
+copying /home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/build/lib/carla_vehicle/vehicle.py -> /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/lib/python3.10/site-packages/carla_vehicle
+copying /home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/build/lib/carla_vehicle/__init__.py -> /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/lib/python3.10/site-packages/carla_vehicle
+byte-compiling /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/lib/python3.10/site-packages/carla_vehicle/vehicle.py to vehicle.cpython-310.pyc
+byte-compiling /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/lib/python3.10/site-packages/carla_vehicle/__init__.py to __init__.cpython-310.pyc
+running install_data
+creating /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/share/ament_index
+creating /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/share/ament_index/resource_index
+creating /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/share/ament_index/resource_index/packages
+copying resource/carla_vehicle -> /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/share/ament_index/resource_index/packages
+copying package.xml -> /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/share/carla_vehicle
+running install_egg_info
+Copying ../../build/carla_vehicle/carla_vehicle.egg-info to /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/lib/python3.10/site-packages/carla_vehicle-0.0.0-py3.10.egg-info
+running install_scripts
+Installing vehicle script to /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/lib/carla_vehicle
+writing list of installed files to '/home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/install.log'

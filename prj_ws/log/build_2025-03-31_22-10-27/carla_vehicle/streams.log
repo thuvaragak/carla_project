@@ -1,0 +1,22 @@
+[1.454s] Invoking command in '/home/thuvaraga/carla/carla_project/prj_ws/src/carla_vehicle': PYTHONPATH=/home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/carla_vehicle build --build-base /home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/build install --record /home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/install.log --single-version-externally-managed install_data
+[1.908s] running egg_info
+[1.910s] writing ../../build/carla_vehicle/carla_vehicle.egg-info/PKG-INFO
+[1.910s] writing dependency_links to ../../build/carla_vehicle/carla_vehicle.egg-info/dependency_links.txt
+[1.910s] writing entry points to ../../build/carla_vehicle/carla_vehicle.egg-info/entry_points.txt
+[1.910s] writing requirements to ../../build/carla_vehicle/carla_vehicle.egg-info/requires.txt
+[1.910s] writing top-level names to ../../build/carla_vehicle/carla_vehicle.egg-info/top_level.txt
+[1.914s] reading manifest file '../../build/carla_vehicle/carla_vehicle.egg-info/SOURCES.txt'
+[1.914s] adding license file 'LICENSE'
+[1.915s] writing manifest file '../../build/carla_vehicle/carla_vehicle.egg-info/SOURCES.txt'
+[1.915s] running build
+[1.915s] running build_py
+[1.916s] running install
+[1.916s] running install_lib
+[1.919s] running install_data
+[1.919s] running install_egg_info
+[1.922s] removing '/home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/lib/python3.10/site-packages/carla_vehicle-0.0.0-py3.10.egg-info' (and everything under it)
+[1.922s] Copying ../../build/carla_vehicle/carla_vehicle.egg-info to /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/lib/python3.10/site-packages/carla_vehicle-0.0.0-py3.10.egg-info
+[1.924s] running install_scripts
+[1.965s] Installing vehicle script to /home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/lib/carla_vehicle
+[1.965s] writing list of installed files to '/home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/install.log'
+[2.007s] Invoked command in '/home/thuvaraga/carla/carla_project/prj_ws/src/carla_vehicle' returned '0': PYTHONPATH=/home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/thuvaraga/carla/carla_project/prj_ws/install/carla_vehicle/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/carla_vehicle build --build-base /home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/build install --record /home/thuvaraga/carla/carla_project/prj_ws/build/carla_vehicle/install.log --single-version-externally-managed install_data
