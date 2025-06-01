@@ -9,6 +9,7 @@ import cv2
 from cv_bridge import CvBridge
 import open3d as o3d
 from matplotlib import cm
+import random
 
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2, PointField
 from std_msgs.msg import Header
@@ -17,6 +18,10 @@ import struct
 import ctypes
 import ros_compatibility as roscomp
 from abc import abstractmethod
+
+from sklearn.linear_model import RANSACRegressor
+from sklearn.cluster import DBSCAN
+from sklearn.neighbors import KDTree
 
 # Auxilliary code for colormaps and axes
 VIRIDIS = np.array(cm.get_cmap('plasma').colors)
@@ -93,56 +98,9 @@ def add_open3d_axis(vis):
         [0.0, 0.0, 1.0]]))
     vis.add_geometry(axis)
 
-'''
-# LIDAR and RADAR callbacks
-def lidar_callback(point_cloud, point_list):
-    """Prepares a point cloud with intensity colors ready to be consumed by Open3D"""
-    print(point_cloud)
-    print("**************** \n")
-    data = np.copy(np.frombuffer(point_cloud.raw_data, dtype=np.dtype('f4')))
-    data = np.reshape(data, (int(data.shape[0] / 4), 4))
-
-    # Isolate the intensity and compute a color for it
-    intensity = data[:, -1]
-    intensity_col = 1.0 - np.log(intensity) / np.log(np.exp(-0.004 * 100))
-    int_color = np.c_[
-        np.interp(intensity_col, VID_RANGE, VIRIDIS[:, 0]),
-        np.interp(intensity_col, VID_RANGE, VIRIDIS[:, 1]),
-        np.interp(intensity_col, VID_RANGE, VIRIDIS[:, 2])]
-
-    points = data[:, :-1]
-
-    points[:, :1] = -points[:, :1]
-
-    point_list.points = o3d.utility.Vector3dVector(points)
-    point_list.colors = o3d.utility.Vector3dVector(int_color)
-
-def radar_callback(data, point_list):
-    radar_data = np.zeros((len(data), 4))
-    
-    for i, detection in enumerate(data):
-        x = detection.depth * math.cos(detection.altitude) * math.cos(detection.azimuth)
-        y = detection.depth * math.cos(detection.altitude) * math.sin(detection.azimuth)
-        z = detection.depth * math.sin(detection.altitude)
-        
-        radar_data[i, :] = [x, y, z, detection.velocity]
-        
-    intensity = np.abs(radar_data[:, -1])
-    intensity_col = 1.0 - np.log(intensity) / np.log(np.exp(-0.004 * 100))
-    int_color = np.c_[
-        np.interp(intensity_col, COOL_RANGE, COOL[:, 0]),
-        np.interp(intensity_col, COOL_RANGE, COOL[:, 1]),
-        np.interp(intensity_col, COOL_RANGE, COOL[:, 2])]
-    
-    points = radar_data[:, :-1]
-    points[:, :1] = -points[:, :1]
-    point_list.points = o3d.utility.Vector3dVector(points)
-    point_list.colors = o3d.utility.Vector3dVector(int_color)
-'''
-
 class EgoVehicle(Node):
     def __init__(self):
-        super().__init__('carla_ego_vehicle')
+        super().__init__('adas_vehicle_detction')
 
         #CARLA INIT
         self.client = carla.Client('localhost', 2000) 
@@ -151,7 +109,6 @@ class EgoVehicle(Node):
         self.br = CvBridge()
         self.vehicle = None
         self.lidar = None
-        self.radar = None
         self.camera = None
         self.camera_data = None
         self.carla_actor = None 
@@ -159,12 +116,12 @@ class EgoVehicle(Node):
 
         self.img_pub = self.create_publisher(Image, 'carla/img', 10)
         self.lidar_pub = self.create_publisher(PointCloud2, 'carla/lidar', 10)
-        self.radar_pub = self.create_publisher(PointCloud2, 'carla/radar', 10)
         self.info_pub = self.create_publisher(CameraInfo, 'carla/camera_info', 10)
 
         # Add auxilliary data structures
         self.point_list = o3d.geometry.PointCloud()
-        self.radar_list = o3d.geometry.PointCloud()
+        self.obs_list = o3d.geometry.PointCloud()
+        self.cluster = []
 
         self.vis = o3d.visualization.Visualizer()
         self.vis.create_window(
@@ -205,49 +162,6 @@ class EgoVehicle(Node):
         camera_info.p = [fx, 0.0, cx, 0.0, 0.0, fy, cy, 0.0, 0.0, 0.0, 1.0, 0.0]
         self.camera_info = camera_info
 
-    def radar_data_updated(self, carla_radar_measurement):
-        fields = [
-            PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
-            PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
-            PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
-            PointField(name='Range', offset=12, datatype=PointField.FLOAT32, count=1),
-            PointField(name='Velocity', offset=16, datatype=PointField.FLOAT32, count=1),
-            PointField(name='AzimuthAngle', offset=20, datatype=PointField.FLOAT32, count=1),
-            PointField(name='ElevationAngle', offset=28, datatype=PointField.FLOAT32, count=1)]
-        points = []
-
-        for detection in carla_radar_measurement:
-            points.append([detection.depth * np.cos(detection.azimuth) * np.cos(-detection.altitude),
-                           detection.depth * np.sin(-detection.azimuth) *
-                           np.cos(detection.altitude),
-                           detection.depth * np.sin(detection.altitude),
-                           detection.depth, detection.velocity, detection.azimuth, detection.altitude])
-        radar_msg = create_cloud(self.get_msg_header(
-            timestamp=carla_radar_measurement.timestamp), fields, points)
-        self.radar_pub.publish(radar_msg)
-
-    def radar_callback(self, data, point_list):
-        self.radar_data_updated(data)
-        radar_data = np.zeros((len(data), 4))
-        
-        for i, detection in enumerate(data):
-            x = detection.depth * math.cos(detection.altitude) * math.cos(detection.azimuth)
-            y = detection.depth * math.cos(detection.altitude) * math.sin(detection.azimuth)
-            z = detection.depth * math.sin(detection.altitude)
-            
-            radar_data[i, :] = [x, y, z, detection.velocity]
-            
-        intensity = np.abs(radar_data[:, -1])
-        intensity_col = 1.0 - np.log(intensity) / np.log(np.exp(-0.004 * 100))
-        int_color = np.c_[
-            np.interp(intensity_col, COOL_RANGE, COOL[:, 0]),
-            np.interp(intensity_col, COOL_RANGE, COOL[:, 1]),
-            np.interp(intensity_col, COOL_RANGE, COOL[:, 2])]
-        
-        points = radar_data[:, :-1]
-        points[:, :1] = -points[:, :1]
-        point_list.points = o3d.utility.Vector3dVector(points)
-        point_list.colors = o3d.utility.Vector3dVector(int_color)
 
     def get_msg_header(self, timestamp=None):
         header = Header()
@@ -266,44 +180,177 @@ class EgoVehicle(Node):
         self.img_pub.publish(img)
         self.info_pub.publish(cam_info)
 
+
+    def segment_plane_ransac(self, cloud, max_iterations, distance_threshold):
+        ground_normal_threshold=0.95
+        points = np.asarray(cloud.points)
+        best_inliers = []
+        best_normal = np.array([0, 0, 0])
+
+        random.seed(time.time())
+        
+        for _ in range(max_iterations):
+            sample_indices = random.sample(range(len(points)), 3)
+            p1, p2, p3 = points[sample_indices]
+
+            # Compute the plane normal using cross product
+            v1 = p2 - p1
+            v2 = p3 - p1
+            normal = np.cross(v1, v2)
+
+            norm = np.linalg.norm(normal)
+            if norm == 0:
+                continue
+
+            normal = normal / norm
+            A, B, C = normal
+            D = -np.dot(normal, p1)
+
+            # Filter out non-horizontal planes (based on normal direction)
+            if abs(C) < ground_normal_threshold:
+                continue
+
+            # Calculate distances to plane
+            distances = np.abs(np.dot(points, normal) + D)
+            inliers = np.where(distances <= distance_threshold)[0]
+
+            if len(inliers) > len(best_inliers):
+                best_inliers = inliers
+                best_normal = normal
+
+        if len(best_inliers) == 0:
+            print("[WARN] Could not estimate a planar model for the given dataset.")
+            return None, cloud
+
+        inlier_cloud = cloud.select_by_index(best_inliers)
+        outlier_cloud = cloud.select_by_index(best_inliers, invert=True)
+
+        print(f"[INFO] Plane inliers: {len(best_inliers)} / {len(points)}")
+
+        return inlier_cloud, outlier_cloud
+
+    def filter_cloud_from_numpy(self, data, voxel_size, min_bound, max_bound):
+        # Split xyz and intensity
+        xyz = data[:, :3]  # shape: (N, 3)
+        intensity = data[:, 3]  # shape: (N,)
+
+        # Convert to Open3D point cloud
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(xyz)
+
+        # Voxel downsampling
+        pcd_down = pcd.voxel_down_sample(voxel_size=voxel_size)
+
+        # Crop box filter
+        bounding_box = o3d.geometry.AxisAlignedBoundingBox(min_bound=min_bound, max_bound=max_bound)
+        pcd_cropped = pcd_down.crop(bounding_box)
+
+        print(f"Original points: {len(data)}, Filtered points: {len(pcd_cropped.points)}")
+
+        return pcd_cropped
+
+    def cluster_helper(self, points, processed_points, index, cluster_indices, tree, cluster_tolerance):
+        """
+        Recursive helper function for Euclidean clustering
+        
+        Args:
+            points: All points in the point cloud
+            processed_points: Boolean array marking processed points
+            index: Current point index to process
+            cluster_indices: List collecting indices of points in current cluster
+            tree: KDTree for nearest neighbor search
+            cluster_tolerance: Distance tolerance for clustering
+        """
+        processed_points[index] = True
+        cluster_indices.append(index)
+        
+        # Find nearby points within tolerance
+        # [indices] = tree.query_radius([points[index]], r=cluster_tolerance)
+        # print(indices)
+        [indices] = tree.query_radius(points[index].reshape(1, -1), r=cluster_tolerance)
+    
+        
+        # Recursively process nearby points that haven't been processed
+        for idx in range(0,indices[0]):
+            if not processed_points[idx]:
+                self.cluster_helper(points, processed_points, idx, cluster_indices, tree, cluster_tolerance)
+
+    def clustering_euclidean_o3d(self, cloud, cluster_tolerance, min_size, max_size):
+        points = np.asarray(cloud.points)
+
+        if len(points) == 0:
+            print("Warning: Empty point cloud received for clustering")
+            empty_cloud = o3d.geometry.PointCloud()
+            empty_cloud.points = o3d.utility.Vector3dVector(np.empty((0, 3)))
+            return empty_cloud
+
+        tree = KDTree(points)
+        
+        clusters = []  # Stores individual clusters (for debugging)
+        processed = np.zeros(len(points), dtype=bool)
+        
+        # Combined point cloud (all clusters merged)
+        combined_cloud = o3d.geometry.PointCloud()
+        combined_points = []
+        combined_colors = []
+        
+        for i in range(len(points)):
+            if processed[i]:
+                continue
+                
+            cluster_indices = []
+            self.cluster_helper(points, processed, i, cluster_indices, tree, cluster_tolerance)
+            
+            if min_size <= len(cluster_indices) <= max_size:
+                # Extract points for this cluster
+                cluster_points = points[cluster_indices]
+                
+                # Assign a random color to the cluster
+                # color = np.random.rand(3)  # RGB in [0, 1]
+                
+                # Add to combined cloud
+                combined_points.extend(cluster_points)
+                # combined_colors.extend([1.0, 0.0, 0.0] * len(cluster_indices))  # Same color for all points in cluster
+                
+                # Optional: Keep individual clusters (for debugging)
+                cluster_cloud = o3d.geometry.PointCloud()
+                cluster_cloud.points = o3d.utility.Vector3dVector(cluster_points)
+                # cluster_cloud.paint_uniform_color([1.0, 0.0, 0.0])
+                clusters.append(cluster_cloud)
+        
+        # Convert combined data to Open3D format
+        combined_cloud.points = o3d.utility.Vector3dVector(np.array(combined_points))
+        # combined_cloud.colors = o3d.utility.Vector3dVector(np.array(combined_colors))
+        # combined_cloud.paint_uniform_color([1.0, 0.0, 0.0]) 
+        
+        print(f"Clustering found {len(clusters)} clusters")
+        return combined_cloud  # Return single merged cloud (with colors)
+
     def lidar_callback(self, point_cloud, point_list):
-        """Prepares a point cloud with intensity colors ready to be consumed by Open3D"""
-        data = np.copy(np.frombuffer(point_cloud.raw_data, dtype=np.dtype('f4')))
-        data = np.reshape(data, (int(data.shape[0] / 4), 4))
-
-        # Isolate the intensity and compute a color for it
-        intensity = data[:, -1]
-        intensity_col = 1.0 - np.log(intensity) / np.log(np.exp(-0.004 * 100))
-        int_color = np.c_[
-            np.interp(intensity_col, VID_RANGE, VIRIDIS[:, 0]),
-            np.interp(intensity_col, VID_RANGE, VIRIDIS[:, 1]),
-            np.interp(intensity_col, VID_RANGE, VIRIDIS[:, 2])]
-
-        points = data[:, :-1]
-
-        points[:, :1] = -points[:, :1]
-
-        point_list.points = o3d.utility.Vector3dVector(points)
-        point_list.colors = o3d.utility.Vector3dVector(int_color)
-
-        # Convert CarlaLidarMeasuremt to ROS2 pointcloud2
-        header = self.get_msg_header(timestamp=point_cloud.timestamp)
-        fields = [
-            PointField(name='x', offset=0, datatype=PointField.FLOAT32, count=1),
-            PointField(name='y', offset=4, datatype=PointField.FLOAT32, count=1),
-            PointField(name='z', offset=8, datatype=PointField.FLOAT32, count=1),
-            PointField(name='intensity', offset=12, datatype=PointField.FLOAT32, count=1)
-        ]
-
-        lidar_data = np.fromstring(
-            bytes(point_cloud.raw_data), dtype=np.float32)
-        lidar_data = np.reshape(
-            lidar_data, (int(lidar_data.shape[0] / 4), 4))
-        # we take the opposite of y axis
-        # (as lidar point are express in left handed coordinate system, and ros need right handed)
-        lidar_data[:, 1] *= -1
-        point_cloud_msg = create_cloud(header, fields, lidar_data)
-        self.lidar_pub.publish(point_cloud_msg)
+        try:
+            data = np.copy(np.frombuffer(point_cloud.raw_data, dtype=np.dtype('f4')))
+            data = np.reshape(data, (int(data.shape[0] / 4), 4))
+            
+            filtered = self.filter_cloud_from_numpy(data, 0.5, np.array([-30, -15, -2]), np.array([30, 15, 2]))
+            if len(filtered.points) == 0:
+                return
+                
+            inliers, outlier = self.segment_plane_ransac(filtered, 500, 0.2)
+            if outlier is None:
+                return
+                
+            cluster = self.clustering_euclidean_o3d(outlier, 0.8, 15, 700)
+            
+            # Update visualizations
+            if inliers:
+                point_list.points = inliers.points  #else o3d.utility.Vector3dVector(np.empty((0, 3)))
+                point_list.paint_uniform_color([0.0, 1.0, 0.0])
+                
+                self.obs_list.points = cluster.points
+                self.obs_list.paint_uniform_color([1.0, 0.0, 0.0])
+            
+        except Exception as e:
+            print(f"Error in lidar_callback: {str(e)}")
 
     def vehicle_setup(self):
         self.spawn_points = self.world.get_map().get_spawn_points() 
@@ -324,25 +371,19 @@ class EgoVehicle(Node):
             v.set_autopilot(True) 
         
 
-        # Set up LIDAR and RADAR, parameters are to assisst visualisation
+        # Set up LIDAR, parameters are to assisst visualisation
         lidar_bp = self.bp_lib.find('sensor.lidar.ray_cast') 
         lidar_bp.set_attribute('range', '150.0')
         lidar_bp.set_attribute('noise_stddev', '0.1')
         lidar_bp.set_attribute('upper_fov', '15.0')
         lidar_bp.set_attribute('lower_fov', '-25.0')
         lidar_bp.set_attribute('channels', '64.0')
-        lidar_bp.set_attribute('rotation_frequency', '50.0')
-        lidar_bp.set_attribute('points_per_second', '500000')
+        lidar_bp.set_attribute('rotation_frequency', '10.0')
+        lidar_bp.set_attribute('points_per_second', '100000')
+
             
         lidar_init_trans = carla.Transform(carla.Location(z=2))
         self.lidar = self.world.spawn_actor(lidar_bp, lidar_init_trans, attach_to=self.vehicle)
-
-        radar_bp = self.bp_lib.find('sensor.other.radar') 
-        radar_bp.set_attribute('horizontal_fov', '30.0')
-        radar_bp.set_attribute('vertical_fov', '30.0')
-        radar_bp.set_attribute('points_per_second', '10000')
-        radar_init_trans = carla.Transform(carla.Location(z=2))
-        self.radar = self.world.spawn_actor(radar_bp, radar_init_trans, attach_to=self.vehicle)
 
         # Spawn camera
         camera_bp = self.bp_lib.find('sensor.camera.rgb') 
@@ -356,7 +397,6 @@ class EgoVehicle(Node):
 
     def sensor_listen(self):
         self.lidar.listen(lambda data: self.lidar_callback(data, self.point_list))
-        self.radar.listen(lambda data: self.radar_callback(data, self.radar_list))
         self.camera.listen(lambda image: self.camera_callback(image, self.camera_data))
 
     def sensor_visualization(self):
@@ -369,9 +409,9 @@ class EgoVehicle(Node):
         while True:
             if frame == 2:
                 self.vis.add_geometry(self.point_list)
-                self.vis.add_geometry(self.radar_list)
+                self.vis.add_geometry(self.obs_list)
             self.vis.update_geometry(self.point_list)
-            self.vis.update_geometry(self.radar_list)
+            self.vis.update_geometry(self.obs_list)
             
             self.vis.poll_events()
             self.vis.update_renderer()
@@ -389,8 +429,6 @@ class EgoVehicle(Node):
     def vehicle_destroy(self):
         # Close displays and stop sensors
         cv2.destroyAllWindows()
-        self.radar.stop()
-        self.radar.destroy()
         self.lidar.stop()
         self.lidar.destroy()
         self.camera.stop()

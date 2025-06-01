@@ -1,3 +1,0 @@
-[console_scripts]
-vehicle = carla_vehicle.vehicle:main
-

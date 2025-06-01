@@ -19,7 +19,11 @@ setup(
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': ['vehicle = carla_vehicle.vehicle:main'
+        'console_scripts': [
+            'vehicle = carla_vehicle.vehicle:main',
+            'objdetection = carla_vehicle.obj_detection:main',
+            'adas_vehicle_detction = carla_vehicle.adas_vehicle_detction:main'
+
         ],
     },
 )
