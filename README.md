@@ -13,7 +13,7 @@ This project implements a **Ego Vehicle Sensor System** in the **CARLA simulator
      -   Segment_plane_ransac: To split the lidar point cloud into the Road plane and the Obstacle plane. The road plane will be visualized as green points, and obstacles as red points
      -   Clustering_euclidean_o3d: Applying the Euclidean clustering algorithm to detect vehicles or any obstacles in the plane.
      -   Filter_cloud_from_numpy: Filtering noise data from raw lidar data.
-- **liosam_carla.py**: ROS 2 nodes for setting up LiDAR, IMU, GNSS, camera and other sensors with TF2 transformations. Process and Publish Lidar, IMU & GNSS data from Lio-SAM ([Link Text] https://github.com/TixiaoShan/LIO-SAM/tree/ros2). 
+- **liosam_carla.py**: ROS 2 nodes for setting up LiDAR, IMU, GNSS, camera and other sensors with TF2 transformations. Process and Publish Lidar, IMU & GNSS data from Lio-SAM (Link Text https://github.com/TixiaoShan/LIO-SAM/tree/ros2). 
 
 ## Technologies Used
 - **CARLA** (Autonomous Driving Simulator)
