@@ -22,7 +22,8 @@ setup(
         'console_scripts': [
             'vehicle = carla_vehicle.vehicle:main',
             'objdetection = carla_vehicle.obj_detection:main',
-            'adas_vehicle_detction = carla_vehicle.adas_vehicle_detction:main'
+            'adas_vehicle_detction = carla_vehicle.adas_vehicle_detction:main',
+            'liosam_carla = carla_vehicle.liosam_carla:main'
 
         ],
     },
