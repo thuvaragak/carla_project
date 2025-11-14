@@ -57,5 +57,14 @@ This project implements a **Ego Vehicle Sensor System** in the **CARLA simulator
    cd liosam_ws
    ros2 launch lio_sam run.launch.py
    ```
+## Executing node to rxplore Lateral control
+1. **Launch CARLA**:
+   ```bash
+   ./CarlaUE4.sh -prefernvidia -quality-level=Low -carla-server -benchmark -fps=15 -windowed -ResX=800 -ResY=600
+   ```
+2. **Run ROS 2 Nodes to make a bridge between Lio-SAM & Carla**:
+   ```bash
+   ros2 run carla_project lateral_control
+   ```
 ---
 **Author**: Thuvaraga K
