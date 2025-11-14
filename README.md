@@ -15,6 +15,8 @@ This project implements a **Ego Vehicle Sensor System** in the **CARLA simulator
      -   Filter_cloud_from_numpy: Filtering noise data from raw lidar data.
 - **liosam_carla.py**: ROS 2 nodes for setting up LiDAR, IMU, GNSS, camera and other sensors with TF2 transformations. Process and publish Lidar, IMU & GNSS data from Lio-SAM (https://github.com/TixiaoShan/LIO-SAM/tree/ros2). 
 
+- **lateral_control.py**: Explored Pure Pursuit for geometric path tracking, PID to smooth heading corrections, Depth-assisted YOLO detections to steer around obstacles, A full perception → control → actuation loop in ROS 2
+
 ## Technologies Used
 - **CARLA** (Autonomous Driving Simulator)
 - **ROS 2** (Robotic Operating System)
