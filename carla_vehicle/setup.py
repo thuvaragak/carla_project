@@ -25,6 +25,7 @@ setup(
             'adas_vehicle_detction = carla_vehicle.adas_vehicle_detction:main',
             'liosam_carla = carla_vehicle.liosam_carla:main',
             'lateral_control = carla_vehicle.lateral_control:main',
+            'carla_sensor = carla_vehicle.carla_sensor:main',
 
         ],
     },
